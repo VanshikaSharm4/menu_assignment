@@ -1,0 +1,157 @@
+// Sample Data for Items
+const items = [
+    { 
+        id: "item1", 
+        itemName: "Butter Roti", 
+        rate: 20, 
+        taxes: [
+            { 
+                name: "Service Charge", 
+                rate: 10, 
+                isInPercent: 'Y' 
+            }
+        ], 
+        category: { 
+            categoryId: "C2" 
+        }
+    },
+    { 
+        id: "item2", 
+        itemName: "Paneer Butter Masala", 
+        rate: 150, 
+        taxes: [
+            { 
+                name: "GST", 
+                rate: 5, 
+                isInPercent: 'Y' 
+            }
+        ], 
+        category: { 
+            categoryId: "C1" 
+        }
+    }
+];
+
+// Sample Data for Categories
+const categories = [
+    { 
+        id: "C1", 
+        categoryName: "Platters", 
+        superCategory: { 
+            superCategoryName: "South Indian", 
+            id: "SC1" 
+        }
+    },
+    { 
+        id: "C2", 
+        categoryName: "Main Course", 
+        superCategory: { 
+            superCategoryName: "North Indian", 
+            id: "SC2" 
+        }
+    }
+];
+
+// Sample Bill Data
+const bill = {
+    id: "B1",
+    billNumber: 1,
+    opentime: "06 Nov 2020 14:19",
+    customerName: "CodeQuotient",
+    billItems: [
+        { 
+            id: "item2", 
+            quantity: 3, 
+            discount: { 
+                rate: 10, 
+                isInPercent: 'Y' 
+            } 
+        }
+    ]
+};
+
+// Task 1: Function to return bill structure with item names
+function getBillWithItemNames(bill, items) {
+    const billItems = bill.billItems.map(billItem => {
+        const item = items.find(item => item.id === billItem.id);
+        
+        return {
+            id: billItem.id,
+            name: item ? item.itemName : '',  // If item found, get the name, else empty string
+            quantity: billItem.quantity
+        };
+    });
+
+    return {
+        id: bill.id,
+        billNumber: bill.billNumber,
+        opentime: bill.opentime,
+        customerName: bill.customerName,
+        billItems: billItems
+    };
+}
+
+// Task 2: Function to return bill structure with calculated amounts (including taxes and discounts)
+function getBillWithAmounts(bill, items, categories) {
+    // Helper function to calculate final amount for each item
+    function calculateAmount(item, quantity, discount, taxes) {
+        let itemTotal = item.rate * quantity;
+
+        // Apply discount
+        if (discount.isInPercent === 'Y') {
+            itemTotal -= (itemTotal * discount.rate) / 100;
+        } else {
+            itemTotal -= discount.rate;
+        }
+
+        // Apply taxes
+        taxes.forEach(tax => {
+            let taxAmount = tax.isInPercent === 'Y' ? (itemTotal * tax.rate) / 100 : tax.rate;
+            itemTotal += taxAmount;
+        });
+
+        return itemTotal;
+    }
+
+    const billItems = bill.billItems.map(billItem => {
+        const item = items.find(item => item.id === billItem.id);
+        const category = categories.find(category => category.id === item.category.categoryId);
+        const itemTaxes = item.taxes;
+
+        const itemAmount = calculateAmount(item, billItem.quantity, billItem.discount, itemTaxes);
+
+        return {
+            id: billItem.id,
+            name: item ? item.itemName : '',
+            quantity: billItem.quantity,
+            discount: billItem.discount,
+            taxes: itemTaxes,
+            amount: itemAmount.toFixed(2),
+            superCategoryName: category ? category.superCategory.superCategoryName : '',
+            categoryName: category ? category.categoryName : ''
+        };
+    });
+
+    const totalAmount = billItems.reduce((total, billItem) => total + parseFloat(billItem.amount), 0).toFixed(2);
+
+    return {
+        id: bill.id,
+        billNumber: bill.billNumber,
+        opentime: bill.opentime,
+        customerName: bill.customerName,
+        billItems: billItems,
+        "Total Amount": totalAmount
+    };
+}
+
+// Test the functions
+
+// Task 1: Get the bill with item names
+const billWithNames = getBillWithItemNames(bill, items);
+console.log("Task 1: Bill with item names");
+console.log(JSON.stringify(billWithNames, null, 2));
+
+// Task 2: Get the bill with amounts (taxes and discount included)
+const billWithAmounts = getBillWithAmounts(bill, items, categories);
+console.log("\nTask 2: Bill with calculated amounts");
+console.log(JSON.stringify(billWithAmounts, null, 2));
